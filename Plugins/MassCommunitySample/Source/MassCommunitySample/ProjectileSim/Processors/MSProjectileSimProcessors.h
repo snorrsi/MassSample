@@ -10,21 +10,33 @@
  * 
  */
 UCLASS()
-class MASSCOMMUNITYSAMPLE_API UMSProjectileSimProcessors : public UMassProcessor
+class MASSCOMMUNITYSAMPLE_API UMSProjectileSimLineTrace : public UMassProcessor
 {
 	GENERATED_BODY()
 
-	UMSProjectileSimProcessors();
+	UMSProjectileSimLineTrace();
 	
 	virtual void ConfigureQueries() override;
 
-	virtual void Execute(FMassEntityManager& EntitySubsystem, FMassExecutionContext& Context) override;
+	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 	
-	virtual void Initialize(UObject& Owner) override;
-	
+	FMassEntityQuery ProjectileOctreeQuery;
 	FMassEntityQuery LineTraceFromPreviousPosition;
-	FMassEntityQuery MyQuery;
-	class UMassSignalSubsystem* SignalSubsystem;
+	FMassEntityQuery RotationFollowsVelocity;
+
 };
 
 
+UCLASS()
+class MASSCOMMUNITYSAMPLE_API UMSProjectileSimOctreeQueryProcessor : public UMassProcessor
+{
+	GENERATED_BODY()
+
+	UMSProjectileSimOctreeQueryProcessor();
+	
+	virtual void ConfigureQueries() override;
+
+	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
+	
+	FMassEntityQuery ProjectileOctreeQuery;
+};
