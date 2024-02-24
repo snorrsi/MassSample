@@ -11,6 +11,8 @@
 #include "Common/Fragments/MSOctreeFragments.h"
 #include "ProjectileSim/MassProjectileHitInterface.h"
 #include "MassSignalSubsystem.h"
+#include "Experimental/Physics/MSMassCollision.h"
+#include "VisualLogger/VisualLogger.h"
 #include "ProjectileSim/Fragments/MSProjectileFragments.h"
 
 UMSProjectileHitObservers::UMSProjectileHitObservers()
@@ -37,8 +39,7 @@ void UMSProjectileHitObservers::ConfigureQueries()
 
 void UMSProjectileHitObservers::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	Context.SetFlushDeferredCommands(true);
-
+	
 	CollisionHitEventQuery.ForEachEntityChunk(EntityManager, Context, [&](FMassExecutionContext& Context)
 	{
 	

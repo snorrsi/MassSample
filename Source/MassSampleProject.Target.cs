@@ -11,7 +11,8 @@ public class MassSampleProjectTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V2;
 		ExtraModuleNames.AddRange(new string[] { "MassSampleProject" });
 
-		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
+		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_2;
+		
 
 	}
 }
