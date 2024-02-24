@@ -3,15 +3,13 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
-public class MassSampleProjectEditorTarget : TargetRules
+public class MassSampleProjectEditorTarget : MassSampleProjectTarget
 {
 	public MassSampleProjectEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
-		DefaultBuildSettings = BuildSettingsVersion.V2;
-		ExtraModuleNames.Add("MassSampleProject");
 		
-		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
+		bUseUnityBuild = false;
 
 	}
 }

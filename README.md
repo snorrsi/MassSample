@@ -9,11 +9,15 @@ Our **very WIP** understanding of Unreal Engine 5's experimental Entity Componen
 
 We are totally open to contributions, If something is wrong or you think it could be improved, feel free to [open an issue](https://github.com/Megafunk/MassSample/issues) or submit a [pull request](https://github.com/Megafunk/MassSample/pulls).
 
-Currently built for the Unreal Engine 5 latest version binary from the Epic Games launcher. 
+Currently built for the Unreal Engine 5 latest version binary from the Epic Games launcher.
 This documentation will be updated often!
 
+# ⚠ 5.2 Bugfix ⚠
+There is a bug in 5.2 for setting Execution Flags for the world and Mass processors that can be resolved either in the Mass config or engine changes 
+[here!](https://dev.epicgames.com/community/learning/tutorials/JXMl/unreal-engine-your-first-60-minutes-with-mass#**massprocessorbugin5.2)
+
 #### **Requirements:**
-- Unreal Engine 5.1 (latest version as of writing) from the [Epic Games launcher](https://www.unrealengine.com/en-US/download)
+- Unreal Engine 5.3 (latest version as of writing) from the [Epic Games launcher](https://www.unrealengine.com/en-US/download)
 - `Git` version control:
   - [Windows](https://gitforwindows.org/)
   - [Linux/Unix & macOS](https://git-scm.com/downloads)
@@ -164,14 +168,18 @@ A Shared Fragment is a type of Fragment that multiple entities can point to. Thi
 
 ```c++
 USTRUCT()
-struct MASSCOMMUNITYSAMPLE_API FClockSharedFragment : public FMassSharedFragment
+struct MASSCOMMUNITYSAMPLE_API FVisibilityDistanceSharedFragment : public FMassSharedFragment
 {
 	GENERATED_BODY()
-	float Clock;
+	
+	UPROPERTY()
+	float Distance;
 };
 ```
 
-In the example above, all the entities containing the `FClockSharedFragment` will see the same `Clock` value. If an entity modifies the `Clock` value, the rest of the entities with this fragment will see the change, as this fragment is shared accross them.
+In the example above, all the entities containing the `FVisibilityDistanceSharedFragment` will see the same `Distance` value. If an entity modifies the `Distance` value, the rest of the entities with this fragment will see the change as they share it through the archetype. Shared fragments are generally added from Mass Traits. 
+
+Make sure your shared fragments are Crc hashable or else you may not actually create a new instance when you call `GetOrCreateSharedFragmentByHash`. You can actually pass in your own hash with `GetOrCreateSharedFragmentByHash`, which can help if you prefer to control what makes each one unique.
 
 Thanks to this sharing data requirement, the Mass entity manager only needs to store one Shared Fragment for the entities that use it.
 
@@ -324,8 +332,8 @@ The chunk size (`UE::Mass::ChunkSize`) has been conveniently set based on next-g
 ### 4.6 Processors
 Processors combine multiple user-defined [queries](#mass-queries) with functions that compute entities.
 
-Processors are automatically registered with Mass and added to the `EMassProcessingPhase::PrePhsysics` processing phase by default. Each `EMassProcessingPhase` relates to an `ETickingGroup`, meaning that, by default, processors tick every frame in their given processing phase.
-
+Unreal classes deriving from UMassProcessor are automatically registered with Mass and added to the `EMassProcessingPhase::PrePhsysics` processing phase by default. Each `EMassProcessingPhase` relates to an `ETickingGroup`, meaning that, by default, processors tick every frame in their given processing phase.
+They can also be created and registered with the `UMassSimulationSubsystem` but the common case is to create a new type. 
 Users can configure to which processing phase their processor belongs by modifying the `ProcessingPhase` variable included in `UMassProcessor`: 
 
 | `EMassProcessingPhase` | Related `ETickingGroup` | Description |
@@ -877,7 +885,7 @@ It's getting to the point where the only things that don't trigger them would be
 <a name="mass-o-n"></a>
 #### 4.9.1 Entity Manager Observer calls
 At the time of writing, Observers are only triggered by the Mass Manager directly during these specific Entity actions. This mainly comes up due to some of the specific single-entity modifying functions like
-`addfragmenttoentity
+`addfragmenttoentity`
 <!-- FIXMEVORI: Maybe this isn't the case because we are not following the recommended practices!! Should ensure not skipping the appropriate exec path-->
 <!--  REVIEWMEFUNK starting to feel pointless but I still think it's a good thing to know-->
 - Entity changes in the entity manager:
@@ -893,7 +901,10 @@ At the time of writing, Observers are only triggered by the Mass Manager directl
 
 This covers processors and spawners but not single Entity changes from C++.
 
-If you need to, asking the observer manager to check for changes should only require calling `OnCompositionChanged()`. Here is an example from the sample's BP library:
+Thankfully a [recent commit](https://github.com/EpicGames/UnrealEngine/commit/2b883dec5f6c821648f2d6005ac06e704099dbd9
+) on ue5-main has rectified this issue.
+
+If you need to, asking the observer manager to check for changes should only require calling `OnCompositionChanged()` with the delta of newly added or removed components.
 <!-- FIXMEFUNK: This is kind of a wacky example. I assume most people who need this might 
 ```c++
 EntityManager.GetObserverManager().OnCompositionChanged(
