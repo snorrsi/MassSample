@@ -15,6 +15,8 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSPhysicsInitProcessors)
+
 
 FBodyCollisionFilterData CollisionFilterDataDummy(const FCollisionResponseContainer& ResponseContainer, ECollisionTraceFlag TraceFlag)
 {
@@ -169,7 +171,7 @@ UMSPhysicsInitProcessor::UMSPhysicsInitProcessor() : EntityQuery(*this)
 	bRequiresGameThreadExecution = true;
 }
 
-void UMSPhysicsInitProcessor::ConfigureQueries()
+void UMSPhysicsInitProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
 	EntityQuery.AddRequirement<FMSMassPhysicsFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadOnly);
@@ -191,7 +193,7 @@ void UMSPhysicsInitProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 	FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 
 	// We use a static mesh asset's collision geo to init a new physics body 
-	EntityQuery.ForEachEntityChunk(EntityManager, InContext, [this,&NewPhysicsHandles,&PhysScene](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( InContext, [this,&NewPhysicsHandles,&PhysScene](FMassExecutionContext& Context)
 	{
 		auto PhysicsFragments = Context.GetMutableFragmentView<FMSMassPhysicsFragment>();
 		auto Transforms = Context.GetFragmentView<FTransformFragment>();
@@ -321,7 +323,7 @@ UMSPhysicsCleanupProcessor::UMSPhysicsCleanupProcessor() : EntityQuery(*this)
 	bRequiresGameThreadExecution = true;
 }
 
-void UMSPhysicsCleanupProcessor::ConfigureQueries()
+void UMSPhysicsCleanupProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
 	EntityQuery.AddRequirement<FMSMassPhysicsFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.RegisterWithProcessor(*this);
@@ -331,7 +333,7 @@ void UMSPhysicsCleanupProcessor::Execute(FMassEntityManager& EntityManager, FMas
 {
 	FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 
-	EntityQuery.ForEachEntityChunk(EntityManager, InContext, [this,&PhysScene](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( InContext, [this,&PhysScene](FMassExecutionContext& Context)
 	{
 		if (!ensure(PhysScene))
 		{

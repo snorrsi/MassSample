@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "MSSceneCompTransformToActorTranslators.h"
@@ -6,6 +6,8 @@
 #include "MassCommonTypes.h"
 #include "MassExecutionContext.h"
 #include "Translators/MassSceneComponentLocationTranslator.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSSceneCompTransformToActorTranslators)
 
 UMSTransformToSceneCompTranslatorFastPath::UMSTransformToSceneCompTranslatorFastPath()
 	: EntityQuery(*this)
@@ -19,8 +21,9 @@ UMSTransformToSceneCompTranslatorFastPath::UMSTransformToSceneCompTranslatorFast
 	bRequiresGameThreadExecution = true;
 }
 
-void UMSTransformToSceneCompTranslatorFastPath::ConfigureQueries()
+void UMSTransformToSceneCompTranslatorFastPath::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	EntityQuery.Initialize(EntityManager);
 	AddRequiredTagsToQuery(EntityQuery);
 	EntityQuery.AddRequirement<FMassSceneComponentWrapperFragment>(EMassFragmentAccess::ReadOnly);
 	EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadWrite);
@@ -30,7 +33,7 @@ void UMSTransformToSceneCompTranslatorFastPath::ConfigureQueries()
 void UMSTransformToSceneCompTranslatorFastPath::Execute(FMassEntityManager& EntityManager,
                                                         FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [this](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( Context, [this](FMassExecutionContext& Context)
 	{
 		const auto ComponentList = Context.GetFragmentView<FMassSceneComponentWrapperFragment>();
 		const auto LocationList = Context.GetMutableFragmentView<FTransformFragment>();
@@ -55,8 +58,9 @@ UMSSceneCompTransformToMassTranslator::UMSSceneCompTransformToMassTranslator() :
 	RequiredTags.Add<FMSSceneComponentTransformToMassTag>();
 }
 
-void UMSSceneCompTransformToMassTranslator::ConfigureQueries()
+void UMSSceneCompTransformToMassTranslator::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	EntityQuery.Initialize(EntityManager);
 	AddRequiredTagsToQuery(EntityQuery);
 	EntityQuery.AddRequirement<FMassSceneComponentWrapperFragment>(EMassFragmentAccess::ReadOnly);
 	EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadWrite);
@@ -64,7 +68,7 @@ void UMSSceneCompTransformToMassTranslator::ConfigureQueries()
 
 void UMSSceneCompTransformToMassTranslator::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [this](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( Context, [this](FMassExecutionContext& Context)
 	{
 		const auto ComponentList = Context.GetFragmentView<FMassSceneComponentWrapperFragment>();
 		const auto LocationList = Context.GetMutableFragmentView<FTransformFragment>();

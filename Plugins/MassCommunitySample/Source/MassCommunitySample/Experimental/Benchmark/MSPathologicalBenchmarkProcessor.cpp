@@ -1,10 +1,12 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "MSPathologicalBenchmarkProcessor.h"
 
 #include "MassEntitySubsystem.h"
 #include "MassExecutionContext.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSPathologicalBenchmarkProcessor)
 
 //make this true to try the benchmark!
 constexpr bool benchmark = false;
@@ -48,9 +50,9 @@ UMSPathologicalBenchmarkProcessor::UMSPathologicalBenchmarkProcessor()
 
 
 
-void UMSPathologicalBenchmarkProcessor::Initialize(UObject& Owner)
+void UMSPathologicalBenchmarkProcessor::InitializeInternal(UObject& Owner, const TSharedRef<FMassEntityManager>& Manager)
  {
-	Super::Initialize(Owner);
+	Super::InitializeInternal(Owner, Manager);
 
 	 FMassEntityManager& EntityManager = GetWorld()->GetSubsystem<UMassEntitySubsystem>()->GetMutableEntityManager();
 
@@ -98,11 +100,13 @@ void UMSPathologicalBenchmarkProcessor::Initialize(UObject& Owner)
 
 
 
- void UMSPathologicalBenchmarkProcessor::ConfigureQueries()
+ void UMSPathologicalBenchmarkProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
  {
 	//quick and dirty way to disable this for now if you want
  	if constexpr (benchmark)
  	{
+ 		PathologicQuery9.Initialize(EntityManager);
+
  		PathologicQuery9.AddRequirement<FPathologicFragment>(EMassFragmentAccess::ReadWrite);
  		
  		PathologicQuery9.AddRequirement(FAlberta::StaticStruct(),EMassFragmentAccess::ReadWrite);
@@ -117,6 +121,7 @@ void UMSPathologicalBenchmarkProcessor::Initialize(UObject& Owner)
  		
  		PathologicQuery9.RegisterWithProcessor(*this);
 
+ 		PathologicQuery3.Initialize(EntityManager);
  		PathologicQuery3.AddRequirement<FPathologicFragment>(EMassFragmentAccess::ReadWrite);
  		
  		PathologicQuery3.AddRequirement(FAlberta::StaticStruct(),EMassFragmentAccess::ReadWrite);
@@ -130,11 +135,11 @@ void UMSPathologicalBenchmarkProcessor::Initialize(UObject& Owner)
 
  void UMSPathologicalBenchmarkProcessor::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	UE_LOG( LogTemp, Warning, TEXT("PathologicalBenchmark9: %i entities found"),PathologicQuery9.GetNumMatchingEntities(EntityManager));
-	UE_LOG( LogTemp, Warning, TEXT("PathologicalBenchmark3: %i entities found"),PathologicQuery3.GetNumMatchingEntities(EntityManager));
+	UE_LOG( LogTemp, Warning, TEXT("PathologicalBenchmark9: %i entities found"),PathologicQuery9.GetNumMatchingEntities());
+	UE_LOG( LogTemp, Warning, TEXT("PathologicalBenchmark3: %i entities found"),PathologicQuery3.GetNumMatchingEntities());
 
 	{
-		PathologicQuery9.ForEachEntityChunk(EntityManager,Context,
+		PathologicQuery9.ForEachEntityChunk(Context,
 		[&,this](FMassExecutionContext& Context)
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(PathologicalBenchmark9Loop);
@@ -167,7 +172,7 @@ void UMSPathologicalBenchmarkProcessor::Initialize(UObject& Owner)
 		});
 	}
 	{
-		PathologicQuery3.ForEachEntityChunk(EntityManager,Context,
+		PathologicQuery3.ForEachEntityChunk(Context,
 		[&,this](FMassExecutionContext& Context)
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(PathologicalBenchmark3Loop);

@@ -1,9 +1,11 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MSObserverSamples.h"
 #include "MassCommonFragments.h"
 #include "MassExecutionContext.h"
 #include "Common/Fragments/MSFragments.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSObserverSamples)
 
 UMSObserverOnAdd::UMSObserverOnAdd()
 {
@@ -12,9 +14,10 @@ UMSObserverOnAdd::UMSObserverOnAdd()
 	ExecutionFlags = (int32)(EProcessorExecutionFlags::All);
 }
 
-void UMSObserverOnAdd::ConfigureQueries()
+void UMSObserverOnAdd::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	// We still make a query here. You can add other things to query for besides the observed fragments 
+	// We still make a query here. You can add other things to query for besides the observed fragments
+	EntityQuery.Initialize(EntityManager);
 	EntityQuery.AddRequirement<FSampleColorFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadOnly);
 	EntityQuery.RegisterWithProcessor(*this);
@@ -23,7 +26,7 @@ void UMSObserverOnAdd::ConfigureQueries()
 
 void UMSObserverOnAdd::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [&,this](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk(Context, [&,this](FMassExecutionContext& Context)
 	{
 		auto OriginalTransforms = Context.GetMutableFragmentView<FOriginalTransformFragment>();
 		auto Transforms = Context.GetFragmentView<FTransformFragment>();

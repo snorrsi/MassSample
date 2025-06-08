@@ -17,14 +17,14 @@ class MASSCOMMUNITYSAMPLE_API UMSEntityCollisionQueryProcessors : public UMassPr
 
 	UMSEntityCollisionQueryProcessors();
 	
-	virtual void ConfigureQueries() override;
+	virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>&) override;
 
 	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 	
-	virtual void Initialize(UObject& Owner) override;
+	virtual void InitializeInternal(UObject& Owner, const TSharedRef<FMassEntityManager>& Manager) override;
 
-	// Yeah... I know
-	FMassEntityQuery OctreeQueryQuery;
+	// A mass query that... queries an octree!
+	FMassEntityQuery OctreeQueryQuery = FMassEntityQuery();
 
 	UPROPERTY()
 	 TObjectPtr<class UMSSubsystem> MSSubsystem;

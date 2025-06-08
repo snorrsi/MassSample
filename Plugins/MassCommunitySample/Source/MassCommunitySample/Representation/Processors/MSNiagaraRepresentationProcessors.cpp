@@ -9,6 +9,8 @@
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "Representation/Fragments/MSRepresentationFragments.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSNiagaraRepresentationProcessors)
+
 UMSNiagaraRepresentationProcessors::UMSNiagaraRepresentationProcessors()
 {
 	//We don't care about rendering on the dedicated server!
@@ -23,8 +25,9 @@ UMSNiagaraRepresentationProcessors::UMSNiagaraRepresentationProcessors()
 	// ProcessingPhase = EMassProcessingPhase::PostUpdate;
 }
 
-void UMSNiagaraRepresentationProcessors::ConfigureQueries()
+void UMSNiagaraRepresentationProcessors::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	PositionToNiagaraFragmentQuery.Initialize(EntityManager);
 	PositionToNiagaraFragmentQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadOnly);
 	PositionToNiagaraFragmentQuery.AddSharedRequirement<FSharedNiagaraSystemFragment>(EMassFragmentAccess::ReadWrite);
 	PositionToNiagaraFragmentQuery.RegisterWithProcessor(*this);
@@ -34,7 +37,7 @@ void UMSNiagaraRepresentationProcessors::ConfigureQueries()
 void UMSNiagaraRepresentationProcessors::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
 	// Query mass for transform data
-	PositionToNiagaraFragmentQuery.ForEachEntityChunk(EntityManager, Context, [&,this](FMassExecutionContext& Context)
+	PositionToNiagaraFragmentQuery.ForEachEntityChunk( Context, [&,this](FMassExecutionContext& Context)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_MASS_PositionToNiagara);
 		const int32 QueryLength = Context.GetNumEntities();
@@ -107,7 +110,7 @@ UMSNiagaraRepresentationSpawnProcs::UMSNiagaraRepresentationSpawnProcs()
 	ExecutionOrder.ExecuteAfter.Add(TEXT("MSNiagaraRepresentationProcessors"));
 }
 
-void UMSNiagaraRepresentationSpawnProcs::ConfigureQueries()
+void UMSNiagaraRepresentationSpawnProcs::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
 	EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadOnly);
 	EntityQuery.AddSharedRequirement<FSharedNiagaraSystemSpawnFragment>(EMassFragmentAccess::ReadOnly);
@@ -118,7 +121,7 @@ void UMSNiagaraRepresentationSpawnProcs::SignalEntities(FMassEntityManager& Enti
                                                         FMassSignalNameLookup& EntitySignals)
 {
 	//query mass for transform data
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [&,this](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( Context, [&,this](FMassExecutionContext& Context)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_MASS_SpawnPositionToNiagara);
 
@@ -147,9 +150,9 @@ void UMSNiagaraRepresentationSpawnProcs::SignalEntities(FMassEntityManager& Enti
 	});
 }
 
-void UMSNiagaraRepresentationSpawnProcs::Initialize(UObject& Owner)
+void UMSNiagaraRepresentationSpawnProcs::InitializeInternal(UObject& Owner, const TSharedRef<FMassEntityManager>& Manager)
 {
-	Super::Initialize(Owner);
+	Super::InitializeInternal(Owner, Manager);
 	
 	UMassSignalSubsystem* SignalSubsystem = UWorld::GetSubsystem<UMassSignalSubsystem>(Owner.GetWorld());
 	if (SignalSubsystem)

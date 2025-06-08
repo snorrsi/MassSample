@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MSOctreeProcessors.h"
 
@@ -7,6 +7,8 @@
 #include "MassExecutionContext.h"
 #include "Chaos/DebugDrawQueue.h"
 #include "Common/Fragments/MSOctreeFragments.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSOctreeProcessors)
 
 static TAutoConsoleVariable<bool> CVarMSDrawOctree(
 	TEXT("masssample.debugoctree"), false,
@@ -19,18 +21,21 @@ UMSOctreeProcessor::UMSOctreeProcessor()
 	ExecutionFlags = (int32)EProcessorExecutionFlags::All;
 }
 
-void UMSOctreeProcessor::Initialize(UObject& Owner)
+void UMSOctreeProcessor::InitializeInternal(UObject& Owner, const TSharedRef<FMassEntityManager>& Manager)
 {
-	Super::Initialize(Owner);
-	MassSampleSystem = GetWorld()->GetSubsystem<UMSSubsystem>();
+	Super::InitializeInternal(Owner, Manager);
+	if (auto World = GetWorld()) {
+		MassSampleSystem = World->GetSubsystem<UMSSubsystem>();
+	}
 #if CHAOS_DEBUG_DRAW
 	Chaos::FDebugDrawQueue::GetInstance().SetConsumerActive(this, true);
 #endif
 }
 
-void UMSOctreeProcessor::ConfigureQueries()
+void UMSOctreeProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
 	// Ideally we only do this for meshes that actually moved
+	UpdateOctreeElementsQuery.Initialize(EntityManager);
 
 	UpdateOctreeElementsQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadOnly);
 	UpdateOctreeElementsQuery.AddRequirement<FMSOctreeFragment>(EMassFragmentAccess::ReadWrite);
@@ -43,7 +48,7 @@ void UMSOctreeProcessor::Execute(FMassEntityManager& EntityManager, FMassExecuti
 {
 
 
-	UpdateOctreeElementsQuery.ForEachEntityChunk(EntityManager, Context, [this](FMassExecutionContext& Context)
+	UpdateOctreeElementsQuery.ForEachEntityChunk( Context, [this](FMassExecutionContext& Context)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UMSOctreeUpdate)
 		FMSOctree2& Octree = MassSampleSystem->Octree2;
@@ -125,14 +130,16 @@ UMSHashGridMemberInitializationProcessor::UMSHashGridMemberInitializationProcess
 	Operation = EMassObservedOperation::Add;
 }
 
-void UMSHashGridMemberInitializationProcessor::Initialize(UObject& Owner)
+void UMSHashGridMemberInitializationProcessor::InitializeInternal(UObject& Owner, const TSharedRef<FMassEntityManager>& Manager)
 {
-	Super::Initialize(Owner);
+	Super::InitializeInternal(Owner, Manager);
 	MassSampleSystem = GetWorld()->GetSubsystem<UMSSubsystem>();
 }
 
-void UMSHashGridMemberInitializationProcessor::ConfigureQueries()
+void UMSHashGridMemberInitializationProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	EntityQuery.Initialize(EntityManager);
+
 	EntityQuery.AddRequirement<FMSOctreeFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadOnly);
 	EntityQuery.AddRequirement<FAgentRadiusFragment>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::Optional);
@@ -144,7 +151,7 @@ void UMSHashGridMemberInitializationProcessor::ConfigureQueries()
 
 void UMSHashGridMemberInitializationProcessor::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [&](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk(Context, [&](FMassExecutionContext& Context)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_MSHashGridMemberInitialization)
 		TConstArrayView<FTransformFragment> TransformList = Context.GetFragmentView<FTransformFragment>();
@@ -200,14 +207,16 @@ UMSOctreeMemberCleanupProcessor::UMSOctreeMemberCleanupProcessor()
 	Operation = EMassObservedOperation::Remove;
 }
 
-void UMSOctreeMemberCleanupProcessor::Initialize(UObject& Owner)
+void UMSOctreeMemberCleanupProcessor::InitializeInternal(UObject& Owner, const TSharedRef<FMassEntityManager>& Manager)
 {
-	Super::Initialize(Owner);
+	Super::InitializeInternal(Owner, Manager);
 	MassSampleSystem = GetWorld()->GetSubsystem<UMSSubsystem>();
 }
 
-void UMSOctreeMemberCleanupProcessor::ConfigureQueries()
+void UMSOctreeMemberCleanupProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	EntityQuery.Initialize(EntityManager);
+
 	EntityQuery.AddRequirement<FMSOctreeFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.RegisterWithProcessor(*this);
 }
@@ -216,7 +225,7 @@ void UMSOctreeMemberCleanupProcessor::Execute(FMassEntityManager& EntityManager,
 {
 	auto& Octree = MassSampleSystem->Octree2;
 
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [&](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( Context, [&](FMassExecutionContext& Context)
 	{
 		const auto NavigationObstacleCellLocationList = Context.GetMutableFragmentView<FMSOctreeFragment>();
 

@@ -1,9 +1,11 @@
-﻿#include "ISMPerInstanceDataProcessors.h"
+#include "ISMPerInstanceDataProcessors.h"
 #include "MassRepresentationFragments.h"
 #include "MassRepresentationTypes.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Representation/Fragments/MSRepresentationFragments.h"
 #include "MassRepresentationSubsystem.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ISMPerInstanceDataProcessors)
 
 UismPerInstanceDataUpdater::UismPerInstanceDataUpdater()
 {
@@ -11,8 +13,9 @@ UismPerInstanceDataUpdater::UismPerInstanceDataUpdater()
 	ExecutionOrder.ExecuteAfter.Add(UE::Mass::ProcessorGroupNames::Representation);
 }
 
-void UismPerInstanceDataUpdater::ConfigureQueries()
+void UismPerInstanceDataUpdater::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	EntityQuery.Initialize(EntityManager);
 	EntityQuery.AddRequirement<FSampleISMPerInstanceSingleFloatFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.AddRequirement<FMassRepresentationFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.AddRequirement<FMassRepresentationLODFragment>(EMassFragmentAccess::ReadOnly);
@@ -23,7 +26,7 @@ void UismPerInstanceDataUpdater::ConfigureQueries()
 
 void UismPerInstanceDataUpdater::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [this](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( Context, [this](FMassExecutionContext& Context)
 	{
 		UMassRepresentationSubsystem* RepresentationSubsystem = Context.GetMutableSharedFragment<FMassRepresentationSubsystemSharedFragment>().RepresentationSubsystem;
 		check(RepresentationSubsystem);
@@ -63,15 +66,16 @@ UISMPerInstanceDataChangerExampleProcessor::UISMPerInstanceDataChangerExamplePro
 	ExecutionFlags = (int32)(EProcessorExecutionFlags::Client | EProcessorExecutionFlags::Standalone | EProcessorExecutionFlags::Editor);
 	ExecutionOrder.ExecuteInGroup = UE::Mass::ProcessorGroupNames::Representation;
 }
-void UISMPerInstanceDataChangerExampleProcessor::ConfigureQueries()
+void UISMPerInstanceDataChangerExampleProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	EntityQuery.Initialize(EntityManager);
 	EntityQuery.AddRequirement<FSampleISMPerInstanceSingleFloatFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.RegisterWithProcessor(*this);
 
 }
 void UISMPerInstanceDataChangerExampleProcessor::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [this](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( Context, [this](FMassExecutionContext& Context)
 	{
 		const TArrayView<FSampleISMPerInstanceSingleFloatFragment> CustomISMDataFragments = Context.GetMutableFragmentView<FSampleISMPerInstanceSingleFloatFragment>();
 		const int32 NumEntities = Context.GetNumEntities();

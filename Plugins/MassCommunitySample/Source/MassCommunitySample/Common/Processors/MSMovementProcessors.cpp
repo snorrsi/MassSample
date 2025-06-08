@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "MSMovementProcessors.h"
@@ -8,6 +8,8 @@
 #include "MassExecutionContext.h"
 #include "MassMovementFragments.h"
 #include "Common/Fragments/MSFragments.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSMovementProcessors)
 
 
 UMSGravityProcessor::UMSGravityProcessor()
@@ -21,17 +23,20 @@ UMSGravityProcessor::UMSGravityProcessor()
 	ExecutionOrder.ExecuteBefore.Add(UE::Mass::ProcessorGroupNames::Movement);
 }
 
-void UMSGravityProcessor::ConfigureQueries()
+void UMSGravityProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	// Only include entities that meet the following rules:
-	
-		// ALL must have an FMSGravityTag (just to split this up from other similar queries)
-		GravityEntityQuery.AddTagRequirement<FMSGravityTag>(EMassFragmentPresence::All);
-		// must have an FMassVelocityFragment and we are reading and mutating it 
-		GravityEntityQuery.AddRequirement<FMassVelocityFragment>(EMassFragmentAccess::ReadWrite);
+	// Initialized the query
+	GravityEntityQuery.Initialize(EntityManager);
 
-		// Finally,  we make the register aware of our new query as we define it ourselves
-		GravityEntityQuery.RegisterWithProcessor(*this);
+	// Only include entities that meet the following rules:
+
+	// ALL must have an FMSGravityTag (just to split this up from other similar queries)
+	GravityEntityQuery.AddTagRequirement<FMSGravityTag>(EMassFragmentPresence::All);
+	// must have an FMassVelocityFragment and we are reading and mutating it 
+	GravityEntityQuery.AddRequirement<FMassVelocityFragment>(EMassFragmentAccess::ReadWrite);
+
+	// Finally,  we make the register aware of our new query as we define it ourselves
+	GravityEntityQuery.RegisterWithProcessor(*this);
 }
 
 void UMSGravityProcessor::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
@@ -43,7 +48,7 @@ void UMSGravityProcessor::Execute(FMassEntityManager& EntityManager, FMassExecut
 	
 
 	//Note that this is a lambda! If you want extra data you may need to pass something into the [] (or just be lazy and use &)
-	GravityEntityQuery.ForEachEntityChunk(EntityManager, Context, [GravityZ](FMassExecutionContext& Context)
+	GravityEntityQuery.ForEachEntityChunk(Context, [GravityZ](FMassExecutionContext& Context)
 	{
 		//Get the length of the entities in our current ExecutionContext
 		const int32 NumEntities = Context.GetNumEntities();
@@ -69,8 +74,10 @@ UMSBasicMovementProcessor::UMSBasicMovementProcessor()
 	ExecutionOrder.ExecuteInGroup = UE::Mass::ProcessorGroupNames::Movement;
 }
 
-void UMSBasicMovementProcessor::ConfigureQueries()
+void UMSBasicMovementProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	MovementEntityQuery.Initialize(EntityManager);
+
 	MovementEntityQuery.AddTagRequirement<FMSBasicMovement>(EMassFragmentPresence::All);
 	MovementEntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadWrite);
 	//must have an FMassForceFragment and we are only reading it
@@ -78,7 +85,8 @@ void UMSBasicMovementProcessor::ConfigureQueries()
 	MovementEntityQuery.AddRequirement<FMassVelocityFragment>(EMassFragmentAccess::ReadWrite);
 	MovementEntityQuery.RegisterWithProcessor(*this);
 
-	// A simple query that forces the transform to rotate in the direction of velocity 
+	// A simple query that forces the transform to rotate in the direction of velocity
+	RotationFollowsVelocity.Initialize(EntityManager);
 	RotationFollowsVelocity.AddRequirement<FMassVelocityFragment>(EMassFragmentAccess::ReadOnly);
 	RotationFollowsVelocity.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadWrite);
 	RotationFollowsVelocity.AddTagRequirement<FMSRotationFollowsVelocityTag>(EMassFragmentPresence::All);
@@ -87,7 +95,7 @@ void UMSBasicMovementProcessor::ConfigureQueries()
 
 void UMSBasicMovementProcessor::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	MovementEntityQuery.ForEachEntityChunk(EntityManager, Context, [](FMassExecutionContext& Context)
+	MovementEntityQuery.ForEachEntityChunk( Context, [](FMassExecutionContext& Context)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_MASS_MovementEntityQuery);
 
@@ -121,7 +129,7 @@ void UMSBasicMovementProcessor::Execute(FMassEntityManager& EntityManager, FMass
 	});
 
 	// This is a second query that is ran right after the first
-	RotationFollowsVelocity.ForEachEntityChunk(EntityManager, Context, [&](FMassExecutionContext& ExecContext)
+	RotationFollowsVelocity.ForEachEntityChunk( Context, [&](FMassExecutionContext& ExecContext)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_MASS_RotationFollowsVelocity);
 

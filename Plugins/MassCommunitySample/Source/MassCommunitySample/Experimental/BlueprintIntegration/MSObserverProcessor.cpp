@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "MSObserverProcessor.h"
@@ -7,6 +7,8 @@
 
 #include "MassObserverRegistry.h"
 #include "Common/Misc/MSBPFunctionLibrary.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSObserverProcessor)
 
 UMSObserverProcessorBP::UMSObserverProcessorBP()
 {
@@ -17,8 +19,10 @@ UMSObserverProcessorBP::UMSObserverProcessorBP()
 }
 
 
-void UMSObserverProcessorBP::ConfigureQueries()
+void UMSObserverProcessorBP::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	EntityQuery.Initialize(EntityManager);
+
 	for (auto Fragment : FragmentRequirements)
 	{
 		if(Fragment.IsValid())
@@ -42,7 +46,7 @@ void UMSObserverProcessorBP::Execute(FMassEntityManager& EntityManager, FMassExe
 	EntityQuery.GetRequiredAllFragments().ExportTypes(ReuiredAllFragmentTypes);
 	auto World = GetWorld();
 
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [&](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( Context, [&](FMassExecutionContext& Context)
 	{
 		TArray<TArrayView<FMassFragment>> FragmentViews;
 		for (auto Fragment : ReuiredAllFragmentTypes )

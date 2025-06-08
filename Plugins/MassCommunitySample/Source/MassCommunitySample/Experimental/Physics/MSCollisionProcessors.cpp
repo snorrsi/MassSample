@@ -15,6 +15,8 @@
 #include "Common/Processors/MSOctreeProcessors.h"
 #include "ProjectileSim/Fragments/MSProjectileFragments.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSCollisionProcessors)
+
 
 UMSEntityCollisionQueryProcessors::UMSEntityCollisionQueryProcessors()
 {
@@ -24,15 +26,20 @@ UMSEntityCollisionQueryProcessors::UMSEntityCollisionQueryProcessors()
 }
 
 
-void UMSEntityCollisionQueryProcessors::Initialize(UObject& Owner)
+void UMSEntityCollisionQueryProcessors::InitializeInternal(UObject& Owner, const TSharedRef<FMassEntityManager>& Manager)
 {
-	Super::Initialize(Owner);
+	Super::InitializeInternal(Owner, Manager);
 
-	MSSubsystem = Owner.GetWorld()->GetSubsystem<UMSSubsystem>();
+	if (auto World = Owner.GetWorld())
+	{
+		MSSubsystem = Owner.GetWorld()->GetSubsystem<UMSSubsystem>();
+	}
 }
 
-void UMSEntityCollisionQueryProcessors::ConfigureQueries()
+void UMSEntityCollisionQueryProcessors::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	OctreeQueryQuery.Initialize(EntityManager);
+
 	OctreeQueryQuery.AddRequirement<FMassVelocityFragment>(EMassFragmentAccess::ReadOnly);
 	OctreeQueryQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadOnly);
 	OctreeQueryQuery.AddTagRequirement<FMSLineTraceTag>(EMassFragmentPresence::All);
@@ -50,7 +57,7 @@ void UMSEntityCollisionQueryProcessors::Execute(FMassEntityManager& EntityManage
 	std::atomic<int32> EntitiesThatWereHitNum(0);
 	
 	TArray<FMassExecutionContext> Contexts;
-	OctreeQueryQuery.ForEachEntityChunk(EntityManager, Context, [&](FMassExecutionContext& Context)
+	OctreeQueryQuery.ForEachEntityChunk( Context, [&](FMassExecutionContext& Context)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_MASSSAMPLE_OctreeQueryQuery);
 

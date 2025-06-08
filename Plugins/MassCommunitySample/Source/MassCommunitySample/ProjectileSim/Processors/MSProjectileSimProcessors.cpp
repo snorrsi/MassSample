@@ -1,9 +1,10 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "MSProjectileSimProcessors.h"
 
 #include "MassCommonFragments.h"
+#include "MassCommonTypes.h"
 #include "MassCommonUtils.h"
 #include "MassExecutionContext.h"
 #include "MassMovementFragments.h"
@@ -12,10 +13,12 @@
 #include "Experimental/Physics/MSMassCollision.h"
 #include "ProjectileSim/Fragments/MSProjectileFragments.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSProjectileSimProcessors)
 
-void UMSProjectileSimProcessors::Initialize(UObject& Owner)
+
+void UMSProjectileSimProcessors::InitializeInternal(UObject& Owner, const TSharedRef<FMassEntityManager>& Manager)
 {
-	Super::Initialize(Owner);
+	Super::InitializeInternal(Owner, Manager);
 }
 
 
@@ -26,8 +29,9 @@ UMSProjectileSimProcessors::UMSProjectileSimProcessors()
 	ExecutionFlags = (int32)(EProcessorExecutionFlags::All);
 }
 
-void UMSProjectileSimProcessors::ConfigureQueries()
+void UMSProjectileSimProcessors::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	LineTraceFromPreviousPosition.Initialize(EntityManager);
 	LineTraceFromPreviousPosition.AddRequirement<FMSCollisionIgnoredActorsFragment>(EMassFragmentAccess::ReadWrite, EMassFragmentPresence::Optional);
 
 	LineTraceFromPreviousPosition.AddRequirement<FMassVelocityFragment>(EMassFragmentAccess::ReadOnly);
@@ -46,7 +50,7 @@ void UMSProjectileSimProcessors::Execute(FMassEntityManager& EntityManager, FMas
 	TQueue<FMassEntityHandle, EQueueMode::Mpsc> EntitiesThatHitSomething;
 	std::atomic<int32> NumEntitiesThatHitSomething;
 	
-	LineTraceFromPreviousPosition.ForEachEntityChunk(EntityManager, Context, [&](FMassExecutionContext& Context)
+	LineTraceFromPreviousPosition.ForEachEntityChunk( Context, [&](FMassExecutionContext& Context)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_MASS_LineTraceFromPreviousPosition);
 

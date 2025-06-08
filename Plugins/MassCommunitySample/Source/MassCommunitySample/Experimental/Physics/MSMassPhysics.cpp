@@ -13,6 +13,8 @@
 #include "Physics/Experimental/PhysScene_Chaos.h"
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSMassPhysics)
+
 #if CHAOS_DEBUG_DRAW
 Chaos::DebugDraw::FChaosDebugDrawSettings ChaosMassPhysDebugDebugDrawSettings(
 	/* ArrowSize =					*/ 1.5f,
@@ -64,13 +66,14 @@ UMSChaosMassTranslationProcessorsProcessors::UMSChaosMassTranslationProcessorsPr
 	bRequiresGameThreadExecution = true;
 }
 
-void UMSChaosMassTranslationProcessorsProcessors::ConfigureQueries()
+void UMSChaosMassTranslationProcessorsProcessors::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	
 	// using our fancy MSMassUtils template here
-	ChaosSimToMass = MSMassUtils::Query<FMSChaosToMassTag, const FMSMassPhysicsFragment, FTransformFragment>();
+	ChaosSimToMass = MSMassUtils::Query<FMSChaosToMassTag, const FMSMassPhysicsFragment, FTransformFragment>(EntityManager);
 	ChaosSimToMass.RegisterWithProcessor(*this);
 	
-	MassTransformsToChaosBodies = MSMassUtils::Query<FMSMassToChaosTag, FMSMassPhysicsFragment, const FTransformFragment>();
+	MassTransformsToChaosBodies = MSMassUtils::Query<FMSMassToChaosTag, FMSMassPhysicsFragment, const FTransformFragment>(EntityManager);
 	MassTransformsToChaosBodies.RegisterWithProcessor(*this);
 
 	UpdateChaosKinematicTargets = MassTransformsToChaosBodies;
@@ -80,7 +83,7 @@ void UMSChaosMassTranslationProcessorsProcessors::ConfigureQueries()
 
 void UMSChaosMassTranslationProcessorsProcessors::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	ChaosSimToMass.ForEachEntityChunk(EntityManager, Context, [this](FMassExecutionContext& Context)
+	ChaosSimToMass.ForEachEntityChunk( Context, [this](FMassExecutionContext& Context)
 	{
 		auto PhysicsFragments = Context.GetFragmentView<FMSMassPhysicsFragment>();
 		auto Transforms = Context.GetMutableFragmentView<FTransformFragment>();
@@ -97,7 +100,7 @@ void UMSChaosMassTranslationProcessorsProcessors::Execute(FMassEntityManager& En
 	});
 
 	// mass forces to kinematic targets
-	UpdateChaosKinematicTargets.ForEachEntityChunk(EntityManager, Context, [this](FMassExecutionContext& Context)
+	UpdateChaosKinematicTargets.ForEachEntityChunk( Context, [this](FMassExecutionContext& Context)
 	{
 		const auto& PhysicsFragments = Context.GetFragmentView<FMSMassPhysicsFragment>();
 		const auto& Transforms = Context.GetMutableFragmentView<FTransformFragment>();
@@ -129,7 +132,7 @@ void UMSChaosMassTranslationProcessorsProcessors::Execute(FMassEntityManager& En
 			}
 		}
 	});
-	MassTransformsToChaosBodies.ForEachEntityChunk(EntityManager, Context, [this](FMassExecutionContext& Context)
+	MassTransformsToChaosBodies.ForEachEntityChunk( Context, [this](FMassExecutionContext& Context)
 	{
 		// This one is by value as we do an evil reinterpret cast later?
 		TConstArrayView<FMSMassPhysicsFragment> PhysicsFragments = Context.GetFragmentView<FMSMassPhysicsFragment>();

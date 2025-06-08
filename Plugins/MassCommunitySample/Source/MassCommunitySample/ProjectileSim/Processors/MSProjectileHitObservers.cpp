@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "MSProjectileHitObservers.h"
@@ -15,6 +15,8 @@
 #include "VisualLogger/VisualLogger.h"
 #include "ProjectileSim/Fragments/MSProjectileFragments.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(MSProjectileHitObservers)
+
 UMSProjectileHitObservers::UMSProjectileHitObservers()
 {
 	ObservedType = FMSHitResultFragment::StaticStruct();
@@ -24,13 +26,15 @@ UMSProjectileHitObservers::UMSProjectileHitObservers()
 	bRequiresGameThreadExecution = true;
 }
 
-void UMSProjectileHitObservers::ConfigureQueries()
+void UMSProjectileHitObservers::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
+	CollisionHitEventQuery.Initialize(EntityManager);
 	CollisionHitEventQuery.AddTagRequirement<FMSProjectileFireHitEventTag>(EMassFragmentPresence::All);
 	CollisionHitEventQuery.AddRequirement<FMSHitResultFragment>(EMassFragmentAccess::ReadOnly);
 	CollisionHitEventQuery.RegisterWithProcessor(*this);
 
 	//You can always add another query for different things in the same observer processor!
+	ResolveHitsQuery.Initialize(EntityManager);
 	ResolveHitsQuery.AddRequirement<FMassVelocityFragment>(EMassFragmentAccess::ReadWrite);
 	ResolveHitsQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadWrite);
 	ResolveHitsQuery.AddRequirement<FMSHitResultFragment>(EMassFragmentAccess::ReadOnly);
@@ -40,7 +44,7 @@ void UMSProjectileHitObservers::ConfigureQueries()
 void UMSProjectileHitObservers::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
 	
-	CollisionHitEventQuery.ForEachEntityChunk(EntityManager, Context, [&](FMassExecutionContext& Context)
+	CollisionHitEventQuery.ForEachEntityChunk( Context, [&](FMassExecutionContext& Context)
 	{
 	
 		auto HitResults = Context.GetFragmentView<FMSHitResultFragment>();
@@ -63,7 +67,7 @@ void UMSProjectileHitObservers::Execute(FMassEntityManager& EntityManager, FMass
 	});
 
 
-	ResolveHitsQuery.ForEachEntityChunk(EntityManager, Context, [&](FMassExecutionContext& Context)
+	ResolveHitsQuery.ForEachEntityChunk( Context, [&](FMassExecutionContext& Context)
 	{
 		auto Transforms = Context.GetMutableFragmentView<FTransformFragment>();
 		auto Velocities = Context.GetMutableFragmentView<FMassVelocityFragment>();
@@ -143,16 +147,16 @@ UMSEntityWasHitSignalProcessor::UMSEntityWasHitSignalProcessor()
 	ExecutionOrder.ExecuteInGroup = UE::Mass::ProcessorGroupNames::Behavior;
 }
 
-void UMSEntityWasHitSignalProcessor::ConfigureQueries()
+void UMSEntityWasHitSignalProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
 	// 
 	EntityQuery.AddTagRequirement<FMSInOctreeGridTag>(EMassFragmentPresence::All);
 	EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadOnly);
 }
 
-void UMSEntityWasHitSignalProcessor::Initialize(UObject& Owner)
+void UMSEntityWasHitSignalProcessor::InitializeInternal(UObject& Owner, const TSharedRef<FMassEntityManager>& Manager)
 {
-	Super::Initialize(Owner);
+	Super::InitializeInternal(Owner, Manager);
 	UMassSignalSubsystem* SignalSubsystem = UWorld::GetSubsystem<UMassSignalSubsystem>(Owner.GetWorld());;
 
 	SubscribeToSignal(*SignalSubsystem, MassSample::Signals::OnGetHit);
@@ -161,7 +165,7 @@ void UMSEntityWasHitSignalProcessor::Initialize(UObject& Owner)
 void UMSEntityWasHitSignalProcessor::SignalEntities(FMassEntityManager& EntityManager, FMassExecutionContext& Context,
                                                     FMassSignalNameLookup& EntitySignals)
 {
-	EntityQuery.ForEachEntityChunk(EntityManager, Context, [&,this](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk( Context, [&,this](FMassExecutionContext& Context)
 	{
 		auto Transforms = Context.GetFragmentView<FTransformFragment>();
 
